@@ -1,9 +1,17 @@
 import * as z from "zod";
 import { tool } from "langchain";
+import expenseModel from "../model/expense.model";
 
-const addExpense = tool(({ amount, title }) => {
-    console.log('add expense',title,amount)
-    return JSON.stringify({ status: 'Success!' })
+const addExpense = tool(async ({ amount, title }) => {
+    const create = await expenseModel.create({
+        title,
+        amount
+    })
+    if(!create){
+    return JSON.stringify({ status: 'Failed to Add Info!',create })
+    }
+    await create.save()
+    return JSON.stringify({ status: 'Success!',create })
 }, {
     name: "add_expense",
     description: "Add the given expense to database",

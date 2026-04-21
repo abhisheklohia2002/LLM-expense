@@ -2,9 +2,9 @@ import { ChatOpenAI } from "@langchain/openai";
 import dotenv from "dotenv";
 dotenv.config();
 
-const model = new ChatOpenAI({
-  model: "gpt-5.1-mini",
+const LLM = new ChatOpenAI({
+  model: "gpt-4.1-nano",
   temperature:0
 });
 
-export default model;
+export default LLM;
