@@ -8,87 +8,94 @@ import db from "./db/Connection";
 import getExpense from "./tools/get-exprense.tool";
 import Readline from "node:readline/promises";
 import deleteExpense from "./tools/delete-expense.tool";
+import generateChartExpense from "./tools/generateChart.tool";
 
 db();
-let tools = [addExpense, getExpense, deleteExpense];
+let tools = [addExpense, getExpense, deleteExpense, generateChartExpense];
 const callModel = async (state: typeof State.State) => {
-  const llmWithNodes = LLM.bindTools(tools);
-  const response = await llmWithNodes.invoke([
-    {
-      role: "system",
-      content: `You are a helpful expense tracking Assistant.current datetime ${new Date().toISOString()}
+    const llmWithNodes = LLM.bindTools(tools);
+    const response = await llmWithNodes.invoke([
+        {
+            role: "system",
+            content: `You are a helpful expense tracking Assistant.current datetime ${new Date().toISOString()}
             .Call add expense tool to add the expense to database
             `,
-    },
-    ...state.messages,
-  ]);
-  return {
-    messages: [response],
-  };
+        },
+        ...state.messages,
+    ]);
+    return {
+        messages: [response],
+    };
 };
 
 const toolNode = new ToolNode(tools);
 const shouldContinue = async (state: typeof State.State) => {
-  const message = state.messages;
-  const lastMessage = message.at(-1) as AIMessage;
-  if (lastMessage.tool_calls?.length) {
-    return "tools";
-  } else {
-    return "__end__";
-  }
+    const message = state.messages;
+    const lastMessage = message.at(-1) as AIMessage;
+    if (lastMessage.tool_calls?.length) {
+        return "tools";
+    } else {
+        return "__end__";
+    }
 };
 
 const shouldToolNode = async (state: typeof State.State) => {
-  const message = state.messages;
-  const lastMessage = message.at(-1) as AIMessage;
-  return "callModel";
+    const message = state.messages;
+    const lastMessage = message.at(-1) as AIMessage;
+    const hasGenerateChartTool = lastMessage.tool_calls?.some(
+        (toolCall) => toolCall.name === "generateChart_expense"
+    );
+    if (hasGenerateChartTool) {
+        return "__end__"
+    }
+    return "callModel";
 };
 async function graphMethod() {
-  const graph = new StateGraph(State);
-  graph
-    .addNode("callModel", callModel)
-    .addNode("tools", toolNode)
-    .addEdge("__start__", "callModel")
-    .addConditionalEdges("callModel", shouldContinue, {
-      tools: "tools",
-      __end__: "__end__",
-    })
-    // .addConditionalEdges("tools", shouldToolNode, {
-    //   callModel: "callModel",
-    //   __end__: "__end__",
-    // });
+    const graph = new StateGraph(State);
+    graph
+        .addNode("callModel", callModel)
+        .addNode("tools", toolNode)
+        .addEdge("__start__", "callModel")
+        .addConditionalEdges("callModel", shouldContinue, {
+            tools: "tools",
+            __end__: "__end__",
+        })
+        .addConditionalEdges("tools", shouldToolNode, {
+            callModel: "callModel",
+            __end__: "__end__",
+        });
 
-  const agent = await graph.compile({
-    checkpointer: new MemorySaver(),
-  });
+    const agent = await graph.compile({
+        checkpointer: new MemorySaver(),
+    });
 
-  const rl = await Readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  while (true) {
-    const user = await rl.question("You: ");
-    if ("/bye" == user.trim()) {
-      break;
+    const rl = await Readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    while (true) {
+        const user = await rl.question("You: ");
+        if ("/bye" == user.trim()) {
+            break;
+        }
+        const response = await agent.invoke(
+            {
+                messages: {
+                    role: "user",
+                    content: user,
+                },
+            },
+            {
+                configurable: { thread_id: 1 },
+            },
+        );
+
+        console.log(
+            "AI: ",
+            response.messages[response.messages.length - 1]?.content,
+        );
     }
-    const response = await agent.invoke(
-      {
-        messages: {
-          role: "user",
-          content: user,
-        },
-      },
-      {
-        configurable: { thread_id: 1 },
-      },
-    );
-
-    console.log(
-      "AI: ",
-      response.messages[response.messages.length - 1]?.content,
-    );
-  }
-  await rl.close();
+    await rl.close();
 }
 
 graphMethod();
