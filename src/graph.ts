@@ -1,7 +1,7 @@
-import { MemorySaver, StateGraph } from "@langchain/langgraph";
+import { MemorySaver, StateGraph, type LangGraphRunnableConfig } from "@langchain/langgraph";
 import State from "./state";
 import addExpense from "./tools/add-expense.tool";
-import LLM from "./agent";
+import getModel from "./agent";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import type { AIMessage } from "langchain";
 import db from "./db/Connection";
@@ -9,11 +9,12 @@ import getExpense from "./tools/get-exprense.tool";
 import Readline from "node:readline/promises";
 import deleteExpense from "./tools/delete-expense.tool";
 import generateChartExpense from "./tools/generateChart.tool";
+import type { StreamMessage } from "../types";
 
 db();
 let tools = [addExpense, getExpense, deleteExpense, generateChartExpense];
 const callModel = async (state: typeof State.State) => {
-  const llmWithNodes = LLM.bindTools(tools);
+  const llmWithNodes = getModel(state.mode ?? "standard").bindTools(tools);
   const response = await llmWithNodes.invoke([
     {
       role: "system",
@@ -29,10 +30,22 @@ const callModel = async (state: typeof State.State) => {
 };
 
 const toolNode = new ToolNode(tools);
-const shouldContinue = async (state: typeof State.State) => {
+const shouldContinue = async (state: typeof State.State,
+  config:LangGraphRunnableConfig
+) => {
   const message = state.messages;
   const lastMessage = message.at(-1) as AIMessage;
   if (lastMessage.tool_calls?.length) {
+    //send custom events
+    const customMessage:StreamMessage = {
+      type:'toolCall:start',
+      payload:{
+        name:lastMessage?.tool_calls[0]?.name as string,
+        args:lastMessage?.tool_calls[0]?.args  as any
+      }
+    }
+
+    config.writer?.(customMessage)
     return "tools";
   } else {
     return "__end__";
@@ -74,7 +87,7 @@ async function graphMethod(data:any) {
     data as any,
     {
       configurable: { thread_id: "1" },
-      streamMode:["messages"]
+      streamMode:["messages",'custom']
     },
   );
 }

@@ -18,29 +18,46 @@ app.post("/chat", async (req: Request, res: Response) => {
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
-    // "Cache-Control": "no-cache, no-transform",
-    // Connection: "keep-alive",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
   });
+
   try {
     const stream = await graphMethod(data);
 
-    for await (const [eventType, chunk] of stream) {
-      const text = JSON.stringify(chunk[0].content, null, 2);
-      const messageType = chunk[0].type;
-      let message: StreamMessage = {} as StreamMessage;
-      if (messageType === "ai") {
-        message = { type: "ai", payload: { text: chunk[0].content as string } };
+    for await (const [mode, chunk] of stream) {
+      let message: StreamMessage | null = null;
+
+      if (mode === "custom") {
+        message = chunk as StreamMessage;
+      } else if (mode === "messages") {
+        const [messageChunk, metadata] = chunk as any;
+
+        if (messageChunk?.type === "ai" && messageChunk?.content) {
+          message = {
+            type: "ai",
+            payload: {
+              text: messageChunk.content as string,
+            },
+          };
+        }
       }
-      res.write(`event: ${eventType}\n`);
+
+      if (!message) continue;
+
+      res.write(`event: ${mode}\n`);
       res.write(`data: ${JSON.stringify(message)}\n\n`);
     }
 
-    // res.write(`event: end\n`);
-    // res.write(`data: done\n\n`);
     res.end();
   } catch (error: any) {
     res.write(`event: error\n`);
-    res.write(`data: ${JSON.stringify(error?.message || "Unknown error")}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({
+        type: "error",
+        payload: error?.message || "Unknown error",
+      })}\n\n`
+    );
     res.end();
   }
 });
