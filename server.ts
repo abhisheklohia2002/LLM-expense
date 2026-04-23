@@ -2,7 +2,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import graphMethod from "./src/graph";
-import type { StreamMessage } from "./types";
+import type { StreamMessage } from "./src/types/types";
 dotenv.config();
 const app = express();
 

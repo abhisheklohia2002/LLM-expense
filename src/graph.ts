@@ -13,7 +13,7 @@ import getExpense from "./tools/get-exprense.tool";
 import Readline from "node:readline/promises";
 import deleteExpense from "./tools/delete-expense.tool";
 import generateChartExpense from "./tools/generateChart.tool";
-import type { StreamMessage } from "../types";
+import type { StreamMessage } from "./types/types";
 
 db();
 let tools = [addExpense, getExpense, deleteExpense, generateChartExpense];
