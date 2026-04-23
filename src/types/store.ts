@@ -9,4 +9,5 @@ export interface IFileStorage {
     upload(data: IFileData): Promise<void>;
     delete(filename: string): Promise<void>;
     getObjecUri(filename: string): Promise<void>;
+    getObject(filename: string): Promise<Buffer>
 }

@@ -3,12 +3,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import graphMethod from "./src/graph";
 import type { StreamMessage } from "./src/types/types";
-dotenv.config();
+import chatRouter from "./src/chat/routes/chat.routes";
 const app = express();
-
+const PORT = 8080
 app.use(express.json());
 app.use(cors());
-
+app.use("/api/chat",chatRouter)
 app.get("/health", (req: Request, res: Response) => {
   res.send("i am good");
 });
@@ -62,6 +62,6 @@ app.post("/chat", async (req: Request, res: Response) => {
   }
 });
 
-app.listen(8080, () => {
-  console.log(`server is ready`);
+app.listen(PORT, () => {
+  console.log(`server is ready http://localhost:${PORT}`);
 });

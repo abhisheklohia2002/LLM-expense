@@ -14,28 +14,46 @@ import Readline from "node:readline/promises";
 import deleteExpense from "./tools/delete-expense.tool";
 import generateChartExpense from "./tools/generateChart.tool";
 import type { StreamMessage } from "./types/types";
+import searchFinanceKnowledge from "./tools/searchFinanceKnowledge";
 
 db();
-let tools = [addExpense, getExpense, deleteExpense, generateChartExpense];
+let tools = [
+  addExpense,
+  getExpense,
+  deleteExpense,
+  generateChartExpense,
+  searchFinanceKnowledge,
+];
 const callModel = async (state: typeof State.State) => {
   const llmWithNodes = getModel(state.mode ?? "standard").bindTools(tools);
   const response = await llmWithNodes.invoke([
     {
       role: "system",
       content: `
-      You are a helpful expense tracking assistant.
+You are a helpful expense tracking assistant.
 Current datetime: ${new Date().toISOString()}
+
+You should only help with finance-related, expense-related, budgeting, invoice, tax, reimbursement, spending, and uploaded finance-document questions.
+
+If the user asks something unrelated to finance, expenses, accounting, invoices, reimbursements, or uploaded financial documents, politely refuse and ask them to ask a finance-related question.
 
 Use tools only when the user is explicitly asking to:
 - add an expense
-- update an expense
+- get or list expenses
 - delete an expense
 - view analytics or charts
-- fetch finance data
+- search uploaded finance-related documents or policies
 
-If the user is just greeting, chatting, or asking a general question, reply normally without calling any tool.
+Use the "search_finance_knowledge" tool when the user asks about:
+- uploaded PDF/document content
+- company expense rules
+- reimbursement policy
+- invoice/tax/accounting questions grounded in uploaded docs
+- any finance-related factual question where document lookup is needed
+
+If the user is just greeting, reply briefly, but keep the conversation scoped to finance and expense tracking.
 Never call a tool unless the user's request clearly requires it.
-            `,
+`,
     },
     ...state.messages,
   ]);
@@ -59,7 +77,6 @@ const shouldContinue = async (
         name: lastMessage?.tool_calls[0]?.name as string,
         args: lastMessage?.tool_calls[0]?.args as any,
       },
-      
     };
 
     config.writer?.(customMessage);
