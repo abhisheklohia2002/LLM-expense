@@ -59,6 +59,7 @@ const shouldContinue = async (
         name: lastMessage?.tool_calls[0]?.name as string,
         args: lastMessage?.tool_calls[0]?.args as any,
       },
+      
     };
 
     config.writer?.(customMessage);

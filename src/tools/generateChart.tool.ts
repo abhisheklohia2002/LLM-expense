@@ -1,9 +1,10 @@
 import * as z from "zod";
 import { tool } from "@langchain/core/tools";
 import expenseModel from "../model/expense.model";
+import type { LangGraphRunnableConfig } from "@langchain/langgraph";
 
 const generateChartExpense = tool(
-  async ({ from, to, groupBy }) => {
+  async ({ from, to, groupBy }, config: LangGraphRunnableConfig) => {
     try {
       const fromDate = new Date(from);
       const toDate = new Date(to);
@@ -123,7 +124,17 @@ const generateChartExpense = tool(
           },
         },
       ]);
-
+      const result = {
+        status: "success",
+        chartData,
+      };
+      config?.writer?.({
+        type: "toolCall:end",
+        payload: {
+          name: "generateChart_expense",
+          result,
+        },
+      });
       return JSON.stringify({
         status: "success",
         from,
@@ -149,7 +160,7 @@ const generateChartExpense = tool(
         .enum(["day", "week", "month", "year"])
         .describe("Group expenses by day, week, month, or year"),
     }),
-  }
+  },
 );
 
 export default generateChartExpense;

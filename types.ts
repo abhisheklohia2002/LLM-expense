@@ -2,7 +2,8 @@ export type StreamMessage =
   | { type: "ai"; payload: { text: string } }
   | {
       type: "toolCall:start";
-      payload: { name: string; args: Record<string, any> };
+      payload: { name: string; args: Record<string, any> }
+      chartData?:any[]
     }
   | {
       type: "tool";
