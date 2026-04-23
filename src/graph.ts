@@ -1,4 +1,8 @@
-import { MemorySaver, StateGraph, type LangGraphRunnableConfig } from "@langchain/langgraph";
+import {
+  MemorySaver,
+  StateGraph,
+  type LangGraphRunnableConfig,
+} from "@langchain/langgraph";
 import State from "./state";
 import addExpense from "./tools/add-expense.tool";
 import getModel from "./agent";
@@ -18,8 +22,19 @@ const callModel = async (state: typeof State.State) => {
   const response = await llmWithNodes.invoke([
     {
       role: "system",
-      content: `You are a helpful expense tracking Assistant.current datetime ${new Date().toISOString()}
-            .Call add expense tool to add the expense to database
+      content: `
+      You are a helpful expense tracking assistant.
+Current datetime: ${new Date().toISOString()}
+
+Use tools only when the user is explicitly asking to:
+- add an expense
+- update an expense
+- delete an expense
+- view analytics or charts
+- fetch finance data
+
+If the user is just greeting, chatting, or asking a general question, reply normally without calling any tool.
+Never call a tool unless the user's request clearly requires it.
             `,
     },
     ...state.messages,
@@ -30,22 +45,23 @@ const callModel = async (state: typeof State.State) => {
 };
 
 const toolNode = new ToolNode(tools);
-const shouldContinue = async (state: typeof State.State,
-  config:LangGraphRunnableConfig
+const shouldContinue = async (
+  state: typeof State.State,
+  config: LangGraphRunnableConfig,
 ) => {
   const message = state.messages;
   const lastMessage = message.at(-1) as AIMessage;
   if (lastMessage.tool_calls?.length) {
     //send custom events
-    const customMessage:StreamMessage = {
-      type:'toolCall:start',
-      payload:{
-        name:lastMessage?.tool_calls[0]?.name as string,
-        args:lastMessage?.tool_calls[0]?.args  as any
-      }
-    }
+    const customMessage: StreamMessage = {
+      type: "toolCall:start",
+      payload: {
+        name: lastMessage?.tool_calls[0]?.name as string,
+        args: lastMessage?.tool_calls[0]?.args as any,
+      },
+    };
 
-    config.writer?.(customMessage)
+    config.writer?.(customMessage);
     return "tools";
   } else {
     return "__end__";
@@ -64,7 +80,7 @@ const shouldToolNode = async (state: typeof State.State) => {
   return "callModel";
 };
 
-async function graphMethod(data:any) {
+async function graphMethod(data: any) {
   const graph = new StateGraph(State);
   graph
     .addNode("callModel", callModel)
@@ -83,13 +99,10 @@ async function graphMethod(data:any) {
     checkpointer: new MemorySaver(),
   });
 
-   return  await agent.stream(
-    data as any,
-    {
-      configurable: { thread_id: "1" },
-      streamMode:["messages",'custom']
-    },
-  );
+  return await agent.stream(data as any, {
+    configurable: { thread_id: "1" },
+    streamMode: ["messages", "custom"],
+  });
 }
 
 export default graphMethod;
