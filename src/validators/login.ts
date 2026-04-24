@@ -1,0 +1,14 @@
+import { body } from "express-validator";
+
+export const loginValidator = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format"),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .withMessage("Password must be at least 6 characters long"),
+];
