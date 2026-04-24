@@ -5,12 +5,20 @@ import graphMethod from "./src/graph";
 import type { StreamMessage } from "./src/types/types";
 import chatRouter from "./src/chat/routes/chat.routes";
 import auth from "./src/users/routes/user.router";
+import path from "path";
 const app = express();
-const PORT = 5000
+const PORT = 5000;
 app.use(express.json());
 app.use(cors());
-app.use("/api/chat",chatRouter);
-app.use('/api/auth',auth)
+app.use(
+  express.static(path.join(__dirname, "./public"), { dotfiles: "allow" }),
+);
+app.get("/.well-known/jwks.json", (req, res) => {
+  res.sendFile("jwks.json", { root: "public/.well-known" });
+});
+app.use("/api/chat", chatRouter);
+app.use("/api/auth", auth);
+
 app.get("/health", (req: Request, res: Response) => {
   res.send("i am good");
 });
@@ -21,7 +29,7 @@ app.post("/chat", async (req: Request, res: Response) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
+    Connection: "keep-alive",
   });
 
   try {
@@ -58,7 +66,7 @@ app.post("/chat", async (req: Request, res: Response) => {
       `data: ${JSON.stringify({
         type: "error",
         payload: error?.message || "Unknown error",
-      })}\n\n`
+      })}\n\n`,
     );
     res.end();
   }
