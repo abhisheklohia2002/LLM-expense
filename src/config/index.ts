@@ -12,12 +12,13 @@ const config = {
   QDRANT_URL: process.env.QDRANT_URL,
   client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || "",
   client_secret: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_SECRET || "",
-  endpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  endpoint:process.env.ENDPOINT,
   redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI || "",
-  scopes:
-    "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+  scopes:process.env.SCOPE,
   jwtSecret: process.env.JWT_SECRET,
-  frontendUrl:process.env.FRONTEND_URL
+  frontendUrl:process.env.FRONTEND_URL,
+  refreshTokenSecret:process.env.REFRESH_TOKEN_SECRET,
+  oAuthGoogleToken:process.env.OAUTH_GOOGLE_TOKEN
 };
 
 for (const [key, value] of Object.entries(config)) {
@@ -40,5 +41,7 @@ export default config as {
   endpoint: string;
   redirect_uri: string;
   scopes: string;
-  jwtSecret:string
+  jwtSecret:string;
+  refreshTokenSecret:string;
+  oAuthGoogleToken:string
 };

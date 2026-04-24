@@ -1,9 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import config from "../../config";
-
+import { validationResult } from "express-validator";
+import createHttpError from "http-errors";
+import userModel from "../model/user.models";
+import type UserService from "../service/user.service";
+import type AuthService from "../../Service/common/Auth.service";
+import { Types } from "mongoose";
 class AuthController {
+  constructor(private userService: UserService,private tokenService:AuthService) {}
   googleAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const code = req.query.code as string;
@@ -16,40 +22,40 @@ class AuthController {
 
       // 1. Exchange Google code for access token
       const tokenResponse = await axios.post(
-        "https://oauth2.googleapis.com/token",
+        config.oAuthGoogleToken,
         {
           code,
-          client_id:config.client_id,
-          client_secret:config.client_secret,
-          redirect_uri:config.redirect_uri,
+          client_id: config.client_id,
+          client_secret: config.client_secret,
+          redirect_uri: config.redirect_uri,
           grant_type: "authorization_code",
-        }
+        },
       );
 
       const { access_token } = tokenResponse.data;
 
       // 2. Get Google user profile
       const userResponse = await axios.get(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
+        config.scopes,
         {
           headers: {
             Authorization: `Bearer ${access_token}`,
           },
-        }
+        },
       );
 
       const googleUser = userResponse.data;
 
       /*
-        googleUser example:
-        {
-          id: "123456789",
-          email: "test@gmail.com",
-          name: "Abhishek",
-          picture: "https://...",
-          verified_email: true
-        }
-      */
+              googleUser example:
+              {
+                id: "123456789",
+                email: "test@gmail.com",
+                name: "Abhishek",
+                picture: "https://...",
+                verified_email: true
+              }
+            */
 
       // 3. Find or create user in your DB
       // Example only:
@@ -69,7 +75,7 @@ class AuthController {
         config.jwtSecret as string,
         {
           expiresIn: "7d",
-        }
+        },
       );
 
       // 5. Send token in HTTP-only cookie
@@ -84,6 +90,55 @@ class AuthController {
       return res.redirect(`${process.env.FRONTEND_URL}/auth/success`);
     } catch (error) {
       next(error);
+    }
+  };
+
+  register = async (req: Request, res: Response, next: NextFunction) => {
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+      return res.status(400).json({ error: result.array() });
+    }
+    const { fullName, email, password, role } = req.body;
+    if (!email) {
+      const error = createHttpError(400, "Email is required");
+      next(error);
+      return;
+    }
+
+    const isExisted = await userModel.findOne({ email });
+    if (isExisted) {
+      const error = createHttpError(400, "user is already exist");
+      next(error);
+      return;
+    }
+    try {
+     const createUser =  await this.userService.register(req.body);
+     const payload:JwtPayload = {
+        email,
+        role,
+        fullName
+     } 
+
+     const generateAccessToken = this.tokenService.generateAccessToken(payload);
+     const generateRefreshToken = this.tokenService.generateRefressToken(payload,createUser._id.toString())
+     const persistToken = await this.tokenService.persistRefreshToken(generateRefreshToken,createUser._id as Types.ObjectId)
+      res.cookie("accessToken", generateAccessToken, {
+        domain: "localhost",
+        sameSite: "strict",
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60, // one hour
+      });
+      res.cookie("refreshToken", generateRefreshToken, {
+        domain: "localhost",
+        sameSite: "strict",
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24 * 365, // one Year
+      });
+      res.status(201).json({ message: "User registered successfully",data:{fullName,email,role}});
+    } catch (error) {
+      const err = createHttpError(500, "user server error");
+      next(err);
+      return;
     }
   };
 }
