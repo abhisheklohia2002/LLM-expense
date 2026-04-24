@@ -16,6 +16,7 @@ const refreshTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
+      expires: 0,
     },
   },
   {

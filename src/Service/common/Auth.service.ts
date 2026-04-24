@@ -5,6 +5,7 @@ import fs from "fs";
 import config from "../../config";
 import RefreshToken from "../../users/model/refershToken";
 import { Types } from "mongoose";
+import { Redirect$ } from "@aws-sdk/client-s3";
 class AuthService {
   getPrivateKey = () => {
     const keyPath = path.resolve(process.cwd(), "certs", "private.pem");
@@ -26,15 +27,35 @@ class AuthService {
     });
   }
 
-  persistRefreshToken = async (token: string, userId: Types.ObjectId) => {
-    const MS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
+  persistRefreshToken = async (
+  token: string,
+  userId: Types.ObjectId,
+  type?: "create" | "update"
+) => {
+  const MS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
 
-   return  await RefreshToken.create({
-      userId,
-      token,
-      expiresAt: new Date(Date.now() + MS_IN_YEAR),
-    });
-  };
+  if (type === "update") {
+    return await RefreshToken.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          token,
+          expiresAt: new Date(Date.now() + MS_IN_YEAR),
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+  }
+
+  return await RefreshToken.create({
+    userId,
+    token,
+    expiresAt: new Date(Date.now() + MS_IN_YEAR),
+  });
+};
 }
 
 export default AuthService;
