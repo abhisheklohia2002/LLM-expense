@@ -1,6 +1,4 @@
 import dotenv from "dotenv";
-import createHttpError from "http-errors";
-
 dotenv.config();
 
 const config = {
@@ -11,7 +9,15 @@ const config = {
   AWS_S3_ACL: process.env.AWS_S3_ACL,
   MONGO_URL: process.env.MONGO_URL,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  QDRANT_URL:process.env.QDRANT_URL
+  QDRANT_URL: process.env.QDRANT_URL,
+  client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || "",
+  client_secret: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_SECRET || "",
+  endpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI || "",
+  scopes:
+    "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+  jwtSecret: process.env.JWT_SECRET,
+  frontendUrl:process.env.FRONTEND_URL
 };
 
 for (const [key, value] of Object.entries(config)) {
@@ -28,5 +34,11 @@ export default config as {
   AWS_S3_ACL?: string;
   MONGO_URL: string;
   OPENAI_API_KEY: string;
-  QDRANT_URL:string;
+  QDRANT_URL: string;
+  client_id: string;
+  client_secret: string;
+  endpoint: string;
+  redirect_uri: string;
+  scopes: string;
+  jwtSecret:string
 };

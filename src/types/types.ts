@@ -10,3 +10,12 @@ export type StreamMessage =
       name: string;
       result: Record<string, any>;
     };
+
+
+
+  export  type GOOGLE_AUTH_KEYS = 
+    | "client_id" 
+    | "client_secret" 
+    | "endpoint" 
+    | "redirect_uri" 
+    | "scopes";

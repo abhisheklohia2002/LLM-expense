@@ -74,7 +74,6 @@ class Chats {
           status: "ready",
         });
       }
-
       return res.status(201).json({
         message: "PDF uploaded successfully",
         response: response ? response : "Failed",

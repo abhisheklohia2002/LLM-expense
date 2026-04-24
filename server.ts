@@ -4,11 +4,13 @@ import dotenv from "dotenv";
 import graphMethod from "./src/graph";
 import type { StreamMessage } from "./src/types/types";
 import chatRouter from "./src/chat/routes/chat.routes";
+import auth from "./src/users/routes/user.router";
 const app = express();
-const PORT = 8080
+const PORT = 5000
 app.use(express.json());
 app.use(cors());
-app.use("/api/chat",chatRouter)
+app.use("/api/chat",chatRouter);
+app.use('/api/auth',auth)
 app.get("/health", (req: Request, res: Response) => {
   res.send("i am good");
 });
