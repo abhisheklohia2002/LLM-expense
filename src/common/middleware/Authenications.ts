@@ -15,9 +15,7 @@ export default  expressjwt({
    algorithms: ["RS256"],
    getToken:(req:Request)=>{
     try {
-      
       const token = req.headers.authorization;
-  
       if (token?.startsWith("Bearer ")) return token.split(" ")?.[1];
       const {accessToken} = req.cookies ;
       return accessToken;

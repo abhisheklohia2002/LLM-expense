@@ -20,7 +20,6 @@ class AuthService {
     return jwt.sign(data, privateKey, {
       algorithm: "RS256",
       expiresIn: "1h",
-      keyid: "auth-key-1",
     });
   }
   generateRefressToken(data: JwtPayload, id: string) {
