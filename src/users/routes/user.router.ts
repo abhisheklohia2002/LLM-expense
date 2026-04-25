@@ -10,7 +10,8 @@ import UserService from "../service/user.service";
 import AuthService from "../../Service/common/Auth.service";
 import { loginValidator } from "../../validators/login";
 import Authenications from "../../common/middleware/Authenications";
-import type { AuthRequest } from "../../interface/common";
+
+import validateRefreshToken from "../../common/middleware/validateRefreshToken";
 
 const auth = express.Router();
 const userService = new UserService();
@@ -39,4 +40,7 @@ auth.get(
   (req: Request, res: Response, next: NextFunction) =>
     authController.self(req as any, res, next)
 );
+
+auth.post('/refreshToken',validateRefreshToken ,(req: Request, res: Response,next:NextFunction) =>
+    authController.refreshToken(req as any, res,next))
 export default auth;

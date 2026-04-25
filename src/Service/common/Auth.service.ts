@@ -17,9 +17,13 @@ class AuthService {
   };
   generateAccessToken(data: JwtPayload) {
     const privateKey = this.getPrivateKey();
-    return jwt.sign(data, privateKey, { algorithm: "RS256", expiresIn: "1h" ,keyid: "auth-key-1",});
+    return jwt.sign(data, privateKey, {
+      algorithm: "RS256",
+      expiresIn: "1h",
+      keyid: "auth-key-1",
+    });
   }
-  generateRefressToken(data: JwtPayload,id: string) {
+  generateRefressToken(data: JwtPayload, id: string) {
     return jwt.sign(data, config.refreshTokenSecret, {
       algorithm: "HS256",
       expiresIn: "1y",
@@ -28,34 +32,43 @@ class AuthService {
   }
 
   persistRefreshToken = async (
-  token: string,
-  userId: Types.ObjectId,
-  type?: "create" | "update"
-) => {
-  const MS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
+    token: string,
+    userId: Types.ObjectId,
+    type?: "create" | "update",
+  ) => {
+    const MS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
 
-  if (type === "update") {
-    return await RefreshToken.findOneAndUpdate(
-      { userId },
-      {
-        $set: {
-          token,
-          expiresAt: new Date(Date.now() + MS_IN_YEAR),
+    if (type === "update") {
+      return await RefreshToken.findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            token,
+            expiresAt: new Date(Date.now() + MS_IN_YEAR),
+          },
         },
-      },
-      {
-        new: true,
-        upsert: true,
-      }
-    );
-  }
+        {
+          upsert: true,
+          returnDocument: "after",
+        },
+      );
+    }
 
-  return await RefreshToken.create({
-    userId,
-    token,
-    expiresAt: new Date(Date.now() + MS_IN_YEAR),
-  });
-};
+    return await RefreshToken.create({
+      userId,
+      token,
+      expiresAt: new Date(Date.now() + MS_IN_YEAR),
+    });
+  };
+
+  deleteRefreshToken = async (userId: string) => {
+    const deleteToken = await RefreshToken.findByIdAndDelete({ _id: userId });
+    if (!deleteToken) {
+      return false;
+    }
+
+    return true;
+  };
 }
 
 export default AuthService;

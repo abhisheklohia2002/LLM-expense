@@ -8,7 +8,8 @@ import userModel from "../model/user.models";
 import type UserService from "../service/user.service";
 import type AuthService from "../../Service/common/Auth.service";
 import { Types } from "mongoose";
-import type { AuthRequest } from "../../interface/common";
+import type { AuthRequest, RefreshTokenPayload } from "../../interface/common";
+
 class AuthController {
   constructor(
     private userService: UserService,
@@ -208,17 +209,72 @@ class AuthController {
   };
 
   self = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // console.log(req?.auth,'----')
-    const userId = req.auth?.sub; 
+    const userId = req.auth?.sub;
     if (!userId) {
       return next(createHttpError(401, "Unauthorized"));
     }
     try {
-      const isExisted = await userModel.findById({ _id:userId });
+      const isExisted = await userModel.findById({ _id: userId });
       if (!isExisted) {
         return next(createHttpError(404, "User not found"));
       }
       return res.status(200).json({ user: isExisted });
+    } catch (error) {
+      const err = createHttpError(500, "user server error");
+      next(err);
+      return;
+    }
+  };
+
+  refreshToken = async (
+    req: RefreshTokenPayload,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const auth = req?.auth;
+      const userId = auth?.sub;
+      const email = auth?.email;
+      const jti = auth?.jti;
+      if (!userId || !jti) {
+        throw createHttpError(401, "Invalid refresh token payload");
+      }
+      const isExisted = await userModel.findById({ _id: userId });
+      const deleteToken = await this.tokenService.deleteRefreshToken(userId);
+      // console.log(isExisted,deleteToken)
+      if (isExisted) {
+        const payload: JwtPayload = {
+          email,
+          role: isExisted.role,
+          fullName: isExisted.fullName,
+          sub: isExisted._id.toString(),
+        };
+
+        const accessToken = this.tokenService.generateAccessToken(payload);
+        const generateRefreshToken = this.tokenService.generateRefressToken(
+          payload,
+          isExisted._id.toString(),
+        );
+        const persistToken = await this.tokenService.persistRefreshToken(
+          generateRefreshToken,
+          isExisted._id as Types.ObjectId,
+          "create",
+        );
+
+        res.cookie("accessToken", accessToken, {
+          domain: "localhost",
+          sameSite: "strict",
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60, // one hour
+        });
+        res.cookie("refreshToken", generateRefreshToken, {
+          domain: "localhost",
+          sameSite: "strict",
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60 * 24 * 365, // one Year
+        });
+        res.status(200).json({ message: "Refresh Token and Access Token Generate successfully" });
+      }
     } catch (error) {
       const err = createHttpError(500, "user server error");
       next(err);
