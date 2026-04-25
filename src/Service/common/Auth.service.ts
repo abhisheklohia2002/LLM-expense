@@ -5,7 +5,7 @@ import fs from "fs";
 import config from "../../config";
 import RefreshToken from "../../users/model/refershToken";
 import { Types } from "mongoose";
-import { Redirect$ } from "@aws-sdk/client-s3";
+
 class AuthService {
   getPrivateKey = () => {
     const keyPath = path.resolve(process.cwd(), "certs", "private.pem");
@@ -17,7 +17,7 @@ class AuthService {
   };
   generateAccessToken(data: JwtPayload) {
     const privateKey = this.getPrivateKey();
-    return jwt.sign(data, privateKey, { algorithm: "RS256", expiresIn: "1h" });
+    return jwt.sign(data, privateKey, { algorithm: "RS256", expiresIn: "1h" ,keyid: "auth-key-1",});
   }
   generateRefressToken(data: JwtPayload,id: string) {
     return jwt.sign(data, config.refreshTokenSecret, {

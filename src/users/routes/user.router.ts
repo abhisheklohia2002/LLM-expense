@@ -9,25 +9,34 @@ import { registerValidator } from "../../validators/register";
 import UserService from "../service/user.service";
 import AuthService from "../../Service/common/Auth.service";
 import { loginValidator } from "../../validators/login";
-import { authMiddleware } from "../../common/Authenications";
+import Authenications from "../../common/middleware/Authenications";
+import type { AuthRequest } from "../../interface/common";
 
 const auth = express.Router();
-const userService = new UserService()
-const authService = new AuthService()
-const authController = new AuthController(userService,authService);
+const userService = new UserService();
+const authService = new AuthService();
+const authController = new AuthController(userService, authService);
 auth.get("/callback", (req: Request, res: Response, next: NextFunction) =>
   authController.googleAuth(req, res, next),
 );
 
-auth.post("/register",registerValidator,(req: Request, res: Response, next: NextFunction) =>
-  authController.register(req, res, next),
+auth.post(
+  "/register",
+  registerValidator,
+  (req: Request, res: Response, next: NextFunction) =>
+    authController.register(req, res, next),
 );
 
-auth.post("/login",loginValidator,(req: Request, res: Response, next: NextFunction) =>
-  authController.login(req, res, next),
+auth.post(
+  "/login",
+  loginValidator,
+  (req: Request, res: Response, next: NextFunction) =>
+    authController.login(req, res, next),
 );
 
-auth.get("/self",authMiddleware,loginValidator,(req: Request, res: Response, next: NextFunction) =>
-  authController.login(req, res, next),
+auth.get(
+  "/self",Authenications as RequestHandler,
+  (req: Request, res: Response, next: NextFunction) =>
+    authController.self(req as any, res, next)
 );
 export default auth;

@@ -8,6 +8,7 @@ import userModel from "../model/user.models";
 import type UserService from "../service/user.service";
 import type AuthService from "../../Service/common/Auth.service";
 import { Types } from "mongoose";
+import type { AuthRequest } from "../../interface/common";
 class AuthController {
   constructor(
     private userService: UserService,
@@ -199,6 +200,25 @@ class AuthController {
         maxAge: 1000 * 60 * 60 * 24 * 365, // one Year
       });
       res.status(200).json({ message: "login successfully" });
+    } catch (error) {
+      const err = createHttpError(500, "user server error");
+      next(err);
+      return;
+    }
+  };
+
+  self = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    // console.log(req?.auth,'----')
+    const userId = req.auth?.sub; 
+    if (!userId) {
+      return next(createHttpError(401, "Unauthorized"));
+    }
+    try {
+      const isExisted = await userModel.findById({ _id:userId });
+      if (!isExisted) {
+        return next(createHttpError(404, "User not found"));
+      }
+      return res.status(200).json({ user: isExisted });
     } catch (error) {
       const err = createHttpError(500, "user server error");
       next(err);
