@@ -9,6 +9,7 @@ import { registerValidator } from "../../validators/register";
 import UserService from "../service/user.service";
 import AuthService from "../../Service/common/Auth.service";
 import { loginValidator } from "../../validators/login";
+import { authMiddleware } from "../../common/Authenications";
 
 const auth = express.Router();
 const userService = new UserService()
@@ -23,6 +24,10 @@ auth.post("/register",registerValidator,(req: Request, res: Response, next: Next
 );
 
 auth.post("/login",loginValidator,(req: Request, res: Response, next: NextFunction) =>
+  authController.login(req, res, next),
+);
+
+auth.get("/self",authMiddleware,loginValidator,(req: Request, res: Response, next: NextFunction) =>
   authController.login(req, res, next),
 );
 export default auth;

@@ -18,7 +18,8 @@ const config = {
   jwtSecret: process.env.JWT_SECRET,
   frontendUrl:process.env.FRONTEND_URL,
   refreshTokenSecret:process.env.REFRESH_TOKEN_SECRET,
-  oAuthGoogleToken:process.env.OAUTH_GOOGLE_TOKEN
+  oAuthGoogleToken:process.env.OAUTH_GOOGLE_TOKEN,
+  jwks_URL:process.env.JWKS_URI
 };
 
 for (const [key, value] of Object.entries(config)) {
@@ -43,5 +44,6 @@ export default config as {
   scopes: string;
   jwtSecret:string;
   refreshTokenSecret:string;
-  oAuthGoogleToken:string
+  oAuthGoogleToken:string;
+  jwks_URL:string
 };
