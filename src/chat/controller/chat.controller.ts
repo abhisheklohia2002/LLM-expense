@@ -90,18 +90,18 @@ class Chats {
   }
 
   chat = async (req: Request, res: Response, next: NextFunction) => {
-    const result = validationResult(req);
-
+    const result = validationResult(req)
     if (!result.isEmpty()) {
       return next(createHttpError(400, "Validation failed"));
     }
     const data = req.body;
-    console.log(data, "---->");
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
     });
+    const stream = await graphMethod(data);
+
     let assistantMessage: any = null;
     let finalAssistantText = "";
     const lastUserMessage = data?.messages
@@ -110,20 +110,18 @@ class Chats {
 
     const messageReq = lastUserMessage?.content;
     await this.chatService.createMessage({
-      chatId: "67f1c9e2a9b3c2d4e5f67890",
+      chatId: data.chatId,
       role: "user",
       content: messageReq,
       status: "completed",
     });
     assistantMessage = await this.chatService.createMessage({
-      chatId: "67f1c9e2a9b3c2d4e5f67890",
+      chatId: data.chatId,
       role: "ai",
       content: "",
       status: "streaming",
     });
     try {
-      const stream = await graphMethod(data);
-
       for await (const [mode, chunk] of stream) {
         let message: StreamMessage | null = null;
 
