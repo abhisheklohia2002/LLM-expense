@@ -28,7 +28,7 @@ app.get("/health", (req: Request, res: Response) => {
   res.send("i am good");
 });
 
-app.post("/chat", async (req: Request, res: Response) => {
+app.post("/api/chat", async (req: Request, res: Response) => {
   const data = req.body;
 
   res.writeHead(200, {
