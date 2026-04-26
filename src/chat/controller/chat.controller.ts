@@ -90,7 +90,7 @@ class Chats {
   }
 
   chat = async (req: Request, res: Response, next: NextFunction) => {
-    const result = validationResult(req)
+    const result = validationResult(req);
     if (!result.isEmpty()) {
       return next(createHttpError(400, "Validation failed"));
     }
@@ -127,6 +127,30 @@ class Chats {
 
         if (mode === "custom") {
           message = chunk as StreamMessage;
+          if (mode === "custom") {
+            message = chunk as StreamMessage;
+
+            if (
+              message.type === "toolCall:end" &&
+              message.payload?.name === "generateChart_expense" &&
+              message.payload?.result?.status === "success"
+            ) {
+              const result = message.payload.result;
+
+              await this.chatService.createMessage({
+                chatId: data.chatId,
+                role: "ai",
+                type: "chart",
+                content: "",
+                chart: {
+                  title: "Expense Chart",
+                  description: `${result.from} to ${result.to} grouped by ${result.groupBy}`,
+                  data: result.chartData as any,
+                },
+                status: "completed",
+              });
+            }
+          }
         } else if (mode === "messages") {
           const [messageChunk, metadata] = chunk as any;
 
@@ -260,6 +284,27 @@ class Chats {
         return;
       }
       res.status(201).json({ chat: getChatByUserId });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  getMessageByChatId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { chatId } = req.params;
+      const listMessageByChatId = await this.chatService.getMessageByChatId(
+        chatId as string,
+      );
+      if (!listMessageByChatId) {
+        const err = createHttpError(404, "Chat Id dont have messages");
+        next(err);
+        return;
+      }
+      res.status(200).json({ message: listMessageByChatId });
     } catch (error) {
       return next(error);
     }

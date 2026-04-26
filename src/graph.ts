@@ -93,6 +93,7 @@ const shouldToolNode = async (state: typeof State.State) => {
     (toolCall) => toolCall.name === "generateChart_expense",
   );
   if (hasGenerateChartTool) {
+    
     return "__end__";
   }
   return "callModel";

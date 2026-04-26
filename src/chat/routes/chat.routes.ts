@@ -49,4 +49,9 @@ chatRouter.delete('/delete/:chatId',(req: Request, res: Response, next: NextFunc
 chatRouter.get('/get/:userId',(req: Request, res: Response, next: NextFunction) =>
   chat.getChatWindow(req, res, next),
 )
+
+chatRouter.get('/messages/:chatId',(req: Request, res: Response, next: NextFunction) =>
+  chat.getMessageByChatId(req, res, next),
+)
+
 export default chatRouter;
