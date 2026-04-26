@@ -9,16 +9,8 @@ const chatSchema = new mongoose.Schema(
       index: true,
     },
 
-     messageId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "message",
-      required: true,
-      index: true,
-    },
-
     title: {
       type: String,
-      required: true,
       trim: true,
       default: "New Chat",
     },

@@ -19,7 +19,7 @@ class Chats {
   constructor(
     private storage: IFileStorage,
     private chatService: ChatService,
-  ) { }
+  ) {}
 
   async upload(req: Request, res: Response, next: NextFunction) {
     try {
@@ -110,13 +110,13 @@ class Chats {
 
     const messageReq = lastUserMessage?.content;
     await this.chatService.createMessage({
-      chatId: '67f1c9e2a9b3c2d4e5f67890',
+      chatId: "67f1c9e2a9b3c2d4e5f67890",
       role: "user",
       content: messageReq,
       status: "completed",
     });
     assistantMessage = await this.chatService.createMessage({
-      chatId: '67f1c9e2a9b3c2d4e5f67890',
+      chatId: "67f1c9e2a9b3c2d4e5f67890",
       role: "ai",
       content: "",
       status: "streaming",
@@ -149,7 +149,6 @@ class Chats {
         res.write(`data: ${JSON.stringify(message)}\n\n`);
       }
 
-
       await this.chatService.updateMessage(assistantMessage._id, {
         content: finalAssistantText,
         status: "completed",
@@ -163,7 +162,6 @@ class Chats {
       );
 
       res.end();
-
     } catch (error: any) {
       if (assistantMessage?._id) {
         await this.chatService.updateMessage(assistantMessage._id, {
@@ -179,6 +177,93 @@ class Chats {
         })}\n\n`,
       );
       res.end();
+    }
+  };
+
+  createChatWindow = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return next(createHttpError(400, "Validation failed"));
+    }
+
+    try {
+      const createWindow = await this.chatService.createChat(req.body);
+      if (!createWindow) {
+        const error = createHttpError(500, "chat was not save");
+        next(error);
+        return;
+      }
+      res.status(201).json({ chat: createWindow });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  updateChatWindow = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return next(createHttpError(400, "Validation failed"));
+    }
+
+    try {
+      const { chatId } = req.params;
+      const updateWindow = await this.chatService.updateChat(
+        req.body,
+        chatId as string,
+      );
+      if (!updateWindow) {
+        const error = createHttpError(500, "chat was not update");
+        next(error);
+        return;
+      }
+      res.status(201).json({ chat: updateWindow });
+    } catch (error) {
+      return next(error);
+    }
+  };
+  deleteChatWindow = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { chatId } = req.params;
+      const deleteWindow = await this.chatService.deleteChat(chatId as string);
+      if (!deleteWindow) {
+        const error = createHttpError(500, "chat was not delete");
+        next(error);
+        return;
+      }
+      res.status(201).json({ chat: deleteWindow });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  getChatWindow = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.params;
+      const getChatByUserId = await this.chatService.getChatByUserId(
+        userId as string,
+      );
+      if (!getChatByUserId) {
+        const error = createHttpError(500, "chat was not getting");
+        next(error);
+        return;
+      }
+      res.status(201).json({ chat: getChatByUserId });
+    } catch (error) {
+      return next(error);
     }
   };
 }
