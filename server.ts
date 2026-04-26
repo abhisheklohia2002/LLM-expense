@@ -28,54 +28,54 @@ app.get("/health", (req: Request, res: Response) => {
   res.send("i am good");
 });
 
-app.post("/api/chat", async (req: Request, res: Response) => {
-  const data = req.body;
+// app.post("/api/chat", async (req: Request, res: Response) => {
+//   const data = req.body;
 
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-  });
+//   res.writeHead(200, {
+//     "Content-Type": "text/event-stream",
+//     "Cache-Control": "no-cache",
+//     Connection: "keep-alive",
+//   });
 
-  try {
-    const stream = await graphMethod(data);
+//   try {
+//     const stream = await graphMethod(data);
 
-    for await (const [mode, chunk] of stream) {
-      let message: StreamMessage | null = null;
+//     for await (const [mode, chunk] of stream) {
+//       let message: StreamMessage | null = null;
 
-      if (mode === "custom") {
-        message = chunk as StreamMessage;
-      } else if (mode === "messages") {
-        const [messageChunk, metadata] = chunk as any;
+//       if (mode === "custom") {
+//         message = chunk as StreamMessage;
+//       } else if (mode === "messages") {
+//         const [messageChunk, metadata] = chunk as any;
 
-        if (messageChunk?.type === "ai" && messageChunk?.content) {
-          message = {
-            type: "ai",
-            payload: {
-              text: messageChunk.content as string,
-            },
-          };
-        }
-      }
+//         if (messageChunk?.type === "ai" && messageChunk?.content) {
+//           message = {
+//             type: "ai",
+//             payload: {
+//               text: messageChunk.content as string,
+//             },
+//           };
+//         }
+//       }
 
-      if (!message) continue;
+//       if (!message) continue;
 
-      res.write(`event: ${mode}\n`);
-      res.write(`data: ${JSON.stringify(message)}\n\n`);
-    }
+//       res.write(`event: ${mode}\n`);
+//       res.write(`data: ${JSON.stringify(message)}\n\n`);
+//     }
 
-    res.end();
-  } catch (error: any) {
-    res.write(`event: error\n`);
-    res.write(
-      `data: ${JSON.stringify({
-        type: "error",
-        payload: error?.message || "Unknown error",
-      })}\n\n`,
-    );
-    res.end();
-  }
-});
+//     res.end();
+//   } catch (error: any) {
+//     res.write(`event: error\n`);
+//     res.write(
+//       `data: ${JSON.stringify({
+//         type: "error",
+//         payload: error?.message || "Unknown error",
+//       })}\n\n`,
+//     );
+//     res.end();
+//   }
+// });
 
 app.listen(PORT, () => {
   console.log(`server is ready http://localhost:${PORT}`);

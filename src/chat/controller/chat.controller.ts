@@ -11,9 +11,15 @@ import { v4 as uuidv4 } from "uuid";
 
 import chatUploadModel from "../model/upload.model";
 import { indexPDF } from "../../db/qdrantConnections";
+import type ChatService from "../service/chat.service";
+import graphMethod from "../../graph";
+import type { StreamMessage } from "../../types/types";
 
 class Chats {
-  constructor(private storage: IFileStorage) {}
+  constructor(
+    private storage: IFileStorage,
+    private chatService: ChatService,
+  ) { }
 
   async upload(req: Request, res: Response, next: NextFunction) {
     try {
@@ -40,29 +46,29 @@ class Chats {
         fileData: pdfFile.data,
         mimeType: pdfFile.mimetype,
       });
-        const uploadDoc = await chatUploadModel.create({
-          userId: "1",
-          originalFileName: pdfFile.name,
-          fileName,
-          mimeType: pdfFile.mimetype,
-          size: pdfFile.size,
-          status: "uploaded",
-        });
-    //   const uploadDoc = {
-    //     _id:"69ea47c7ad3df5bd27d80b9b",
-    //     userId: "1",
-    //     originalFileName: "jenkins_ubuntu_docker_commands.pdf",
-    //     fileName: "2e02239b-b855-419f-b6f6-6ae46b5f995e.pdf",
-    //     mimeType: "application/pdf",
-    //     size: 4823,
-    //     status: "uploaded",
-    //   };
+      const uploadDoc = await chatUploadModel.create({
+        userId: "1",
+        originalFileName: pdfFile.name,
+        fileName,
+        mimeType: pdfFile.mimetype,
+        size: pdfFile.size,
+        status: "uploaded",
+      });
+      //   const uploadDoc = {
+      //     _id:"69ea47c7ad3df5bd27d80b9b",
+      //     userId: "1",
+      //     originalFileName: "jenkins_ubuntu_docker_commands.pdf",
+      //     fileName: "2e02239b-b855-419f-b6f6-6ae46b5f995e.pdf",
+      //     mimeType: "application/pdf",
+      //     size: 4823,
+      //     status: "uploaded",
+      //   };
       let response;
       if (uploadDoc) {
-        console.log(fileName,'fileName')
+        console.log(fileName, "fileName");
         // const pdfUrl = this.storage.getObjecUri(fileName) as unknown as string;
         const pdfBuffer = await this.storage.getObject(fileName);
-        console.log("Uploading to S3 with key:",pdfBuffer);
+        console.log("Uploading to S3 with key:", pdfBuffer);
         await indexPDF({
           pdfBuffer,
           documentId: String(uploadDoc._id),
@@ -82,6 +88,99 @@ class Chats {
       return next(error);
     }
   }
+
+  chat = async (req: Request, res: Response, next: NextFunction) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return next(createHttpError(400, "Validation failed"));
+    }
+    const data = req.body;
+    console.log(data, "---->");
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    let assistantMessage: any = null;
+    let finalAssistantText = "";
+    const lastUserMessage = data?.messages
+      ?.filter((msg: any) => msg.role === "user")
+      ?.at(-1);
+
+    const messageReq = lastUserMessage?.content;
+    await this.chatService.createMessage({
+      chatId: '67f1c9e2a9b3c2d4e5f67890',
+      role: "user",
+      content: messageReq,
+      status: "completed",
+    });
+    assistantMessage = await this.chatService.createMessage({
+      chatId: '67f1c9e2a9b3c2d4e5f67890',
+      role: "ai",
+      content: "",
+      status: "streaming",
+    });
+    try {
+      const stream = await graphMethod(data);
+
+      for await (const [mode, chunk] of stream) {
+        let message: StreamMessage | null = null;
+
+        if (mode === "custom") {
+          message = chunk as StreamMessage;
+        } else if (mode === "messages") {
+          const [messageChunk, metadata] = chunk as any;
+
+          if (messageChunk?.type === "ai" && messageChunk?.content) {
+            const text = messageChunk.content as string;
+            finalAssistantText += text;
+            message = {
+              type: "ai",
+              payload: {
+                text: messageChunk.content as string,
+              },
+            };
+          }
+        }
+
+        if (!message) continue;
+        res.write(`event: ${mode}\n`);
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
+      }
+
+
+      await this.chatService.updateMessage(assistantMessage._id, {
+        content: finalAssistantText,
+        status: "completed",
+      });
+
+      res.write(`event: end\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          type: "end",
+        })}\n\n`,
+      );
+
+      res.end();
+
+    } catch (error: any) {
+      if (assistantMessage?._id) {
+        await this.chatService.updateMessage(assistantMessage._id, {
+          content: finalAssistantText,
+          status: "failed",
+        });
+      }
+      res.write(`event: error\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          type: "error",
+          payload: error?.message || "Unknown error",
+        })}\n\n`,
+      );
+      res.end();
+    }
+  };
 }
 
 export default Chats;
