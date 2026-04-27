@@ -12,6 +12,8 @@ import { loginValidator } from "../../validators/login";
 import Authenications from "../../common/middleware/Authenications";
 
 import validateRefreshToken from "../../common/middleware/validateRefreshToken";
+import parseRefreshToken from "../../common/middleware/parseRefreshToken";
+import type { RefreshTokenPayload } from "../../interface/common";
 
 const auth = express.Router();
 const userService = new UserService();
@@ -36,11 +38,23 @@ auth.post(
 );
 
 auth.get(
-  "/self",Authenications as RequestHandler,
+  "/self",
+  Authenications as RequestHandler,
   (req: Request, res: Response, next: NextFunction) =>
-    authController.self(req as any, res, next)
+    authController.self(req as any, res, next),
 );
 
-auth.post('/refreshToken',validateRefreshToken ,(req: Request, res: Response,next:NextFunction) =>
-    authController.refreshToken(req as any, res,next))
+auth.post(
+  "/refreshToken",
+  validateRefreshToken,
+  (req: Request, res: Response, next: NextFunction) =>
+    authController.refreshToken(req as any, res, next),
+);
+
+auth.post(
+  "/logout",
+  parseRefreshToken,
+  (req: Request, res: Response, next: NextFunction) =>
+    authController.logout(req as any, res, next),
+);
 export default auth;

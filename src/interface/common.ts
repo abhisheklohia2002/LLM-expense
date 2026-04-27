@@ -5,13 +5,9 @@ export interface IUser {
   email: string;
   password: string;
   role: "admin" | "manager" | "user";
+  googleId?:string | number;
+
 }
-
-
-
-
-
-
 
 export interface RefreshTokenPayload extends JwtPayload {
   email: string;

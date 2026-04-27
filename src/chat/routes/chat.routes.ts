@@ -54,4 +54,5 @@ chatRouter.get('/messages/:chatId',(req: Request, res: Response, next: NextFunct
   chat.getMessageByChatId(req, res, next),
 )
 
+
 export default chatRouter;

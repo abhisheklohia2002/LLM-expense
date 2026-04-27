@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import type { IUser } from "../../interface/common";
 
-
 const userSchemma = new mongoose.Schema<IUser>(
   {
     fullName: {
@@ -11,16 +10,24 @@ const userSchemma = new mongoose.Schema<IUser>(
     email: {
       type: String,
       required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
-      required: true,
+      required: false,
     },
     role: {
       type: String,
       required: true,
       enum: ["admin", "manager", "user"],
       default: "user",
+    },
+    googleId: {
+      type: String,
+      default: null,
+      index: true,
     },
   },
   {

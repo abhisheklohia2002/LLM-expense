@@ -68,6 +68,7 @@ class AuthService {
 
     return true;
   };
+   
 }
 
 export default AuthService;
